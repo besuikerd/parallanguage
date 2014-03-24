@@ -20,13 +20,26 @@ case class Case(constructor:String, arguments:List[String], expr:Expression)
 object Reducer{
   def reduce(expression:Expression):Expression = expression match{
     case Variable(x) => Constant(5) //TODO variable bindings
+    
+    //Application of lambda function with too many arguments
     case Application(Lambda(List(), expr), x::xs) => error("too many arguments")
+    
+    //Lambda removal
     case Application(Lambda(List(), expr), _) => reduce(expr)
-    case Application(Lambda(binding::bindings, expr), expression::expressions) => reduce(Application(Lambda(bindings, bindArgs(expr.asInstanceOf[Application], binding, expression)), expressions))
+    
+    //Beta reduction
+    case Application(Lambda(binding::bindings, expr), expression::expressions) => expr match{
+      case app:Application => reduce(Application(Lambda(bindings, bindArgs(app, binding, expression)), expressions))
+      case x => reduce(x)
+    } 
+    
+    //Reduce primitive binary operations
     case app @ Application(Variable(name), List(Constant(x), Constant(y))) => binaryOps.get(name) match{
-      case Some(fun) => Constant(fun(x, y))
+      case Some(fun) => fun(x, y)
       case _ => app
     }
+    
+    //Reduce applications
     case app @ Application(f, list) => reduce(Application(f, list.map(reduce)))
     case x => x
   }
@@ -39,10 +52,11 @@ object Reducer{
     }))
   }
   
-  val binaryOps = Map[String, (Int, Int) => Int](
-      "plus" ->  (_ + _),
-      "minus" -> (_ - _),
-      "mult" -> (_ * _),
-      "div" -> (_ / _)
+  val binaryOps = Map[String, (Int, Int) => Expression](
+      "plus" ->  ((x, y) => Constant(x + y)),
+      "minus" -> ((x, y) => Constant(x - y)),
+      "div" -> ((x, y) => Constant(x / y)),
+      "mult" -> ((x, y) => Constant(x * y)),
+      "compare" -> ((x, y) => if(x > y) Constructor("GT") else if(x < y) Constructor("LT") else Constructor("EQ"))
   )
 }

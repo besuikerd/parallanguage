@@ -27,7 +27,7 @@ object Interpreter {
 
     Stream.continually(readLine).foreach(s => {
       val parsed = Parser.parseAll(Parser.expression, s)
-      println(if (parsed.successful) try { Reducer.reduce(parsed.get) } catch { case e: Throwable => e.getMessage } else parsed.toString)
+      if (parsed.successful) try { println(parsed.get); println(Reducer.reduce(parsed.get)) } catch { case e: Throwable => println(e.getMessage) } else println(parsed.toString)
     })
 
   }
@@ -35,7 +35,10 @@ object Interpreter {
   def testReduce = {
     // \x y z -> x `plus` (y `plus` z)
     val lambda = Lambda(List("x", "y", "z"), Application(Variable("plus"), List(Variable("x"), Application(Variable("mult"), List(Variable("y"), Variable("z"))))))
-    val application = Application(lambda, List(Constant(1), Variable("ds"), Constant(3)))
+    
+    // (\x y z -> (x `plus` (y `plus` z)) 1 2 3)
+    val application = Application(lambda, List(Constant(1), Constant(2), Constant(3)))
+    
     println(application)
     println(Reducer.reduce(application))
   }
