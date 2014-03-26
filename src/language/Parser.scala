@@ -18,7 +18,7 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
     identLower ~ identLower.* ~ ("=" ~> expression) ^^ Assignment
     
   lazy val expression:Parser[Expression] = 
-    "match" ~> expression ~ ("{" ~> (identUpper ~ identLower.* ~ ("->" ~> expression) ^^ Case).* <~ "}") ^^ Match |
+    "match" ~> expression ~ ("{" ~> (( ("_" ~> "->") ~> expression ^^ DefaultCase) | (identUpper ~ identLower.* ~ ("->" ~> expression) ^^ Case)).* <~ "}") ^^ Match |
     "(" ~> expression ~ ("`" ~> identLower)  ~ ('`' ~> expression) <~ ")" ^^ (x => x match{case left ~ op ~ right => Application(Variable(op), List(left, right))}) |
     identLower ^^ Variable |
     identUpper ^^ Constructor |
