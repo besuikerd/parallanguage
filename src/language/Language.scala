@@ -38,7 +38,7 @@ object Reducer{
 //      case Application(Constructor(name), list) => cases.find((c) => c.constructor == name || c.isInstanceOf[DefaultCase]) match{
 //	      case Some(Case(constructor, arguments, expression)) =>
 //	      case x => error("non-exhaustive pattern")
-//      	}
+//      		}
     }
     
     //Application of lambda function with too many arguments
@@ -47,7 +47,7 @@ object Reducer{
     case Application(Lambda(x::xs, _), List()) => error("too few arguments")
     
     //Lambda removal
-    case Application(Lambda(List(), expr), args) => {println("expr: " + expr); reduce(expr, values)}
+    case Application(Lambda(List(), expr), args) => reduce(Debug.traceFormatted("expr:%s"){expr}((e) => List(e)), values)
     
     //Beta reduction
     case a @ Application(Lambda(binding::bindings, expr), expression::expressions) => {println("beta: " + a); (reduce(Application(Lambda(bindings, bindArgs(expr, binding, expression)), expressions), values))} 

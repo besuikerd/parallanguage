@@ -18,13 +18,23 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
     identLower ~ identLower.* ~ ("=" ~> expression) ^^ Assignment
     
   lazy val expression:Parser[Expression] = 
+    //pattern matching
     "match" ~> expression ~ ("{" ~> (( ("_" ~> "->") ~> expression ^^ DefaultCase) | (identUpper ~ identLower.* ~ ("->" ~> expression) ^^ Case)).* <~ "}") ^^ Match |
+    //SUGAR binary application
     "(" ~> expression ~ ("`" ~> identLower)  ~ ('`' ~> expression) <~ ")" ^^ (x => x match{case left ~ op ~ right => Application(Variable(op), List(left, right))}) |
+    //SUGAR application
+    ((identLower <~ "(") ~ repsep(expression, ",") <~ ")") ^^ (x => x match{case name ~ args => Application(Variable(name), args)}) |
+    //variable
     identLower ^^ Variable |
+    //constructor
     identUpper ^^ Constructor |
+    //SUGAR List constructor
     "[" ~> repsep(expression, ",") <~ "]" ^^ (_.foldRight[Expression](Constructor("Empty"))((x, xs) => Application(Constructor("Cons"), List(x, xs)))) | 
+    //constant
     int ^^ Constant |
+    //lambda
     ("\\" ~> identLower.*) ~ ("->" ~> expression) ^^ Lambda |
+    //application
     "(" ~> expression ~ expression.+ <~ ")" ^^ Application
     
 }

@@ -1,0 +1,10 @@
+fac n = match (compare n 0) {
+	GT -> (fac((n `minus` 1)) `mult` n)
+	EQ -> 1
+}
+
+fib n = match (compare n 2) {
+	LT -> 1
+	EQ -> 1
+	GT -> ((fib (n `minus` 1)) `plus` (fib (n `minus` 2)))
+}
