@@ -14,9 +14,8 @@ object Interpreter {
   def main(args: Array[String]) {
 
     val values = args.foldLeft(Map[String, Expression]())((map, arg) => map ++ loadFile(arg))
-
     Stream.continually(readLine).foreach(s => Parser.parseAll(Parser.expression, s) match{
-      case Parser.Success(result, n) => try{println(Reducer.reduce(result, values))} catch{case e:Throwable => println(e.getMessage)}
+      case Parser.Success(result, n) => try{println(result); println(Reducer.reduce(result, values))} catch{case e:Throwable => println(e.getMessage)}
       case Parser.Failure(msg, n) => println(msg)
       case Parser.Error(msg, n) => println(msg)
     })
@@ -35,7 +34,7 @@ object Interpreter {
         case Parser.Error(msg, n) => {println(msg); Map[String, Expression]()}
       }) match{
         case Some(map) => map
-        case None => error("invalid path: " + path)
+        case None => {println("invalid path: " + path); Map()}
       }
       
     }

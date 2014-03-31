@@ -8,3 +8,5 @@ fib n = match (compare n 2) {
 	EQ -> 1
 	GT -> ((fib (n `minus` 1)) `plus` (fib (n `minus` 2)))
 }
+
+add = \x y -> (x `plus` y)

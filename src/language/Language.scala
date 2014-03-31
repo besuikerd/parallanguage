@@ -35,24 +35,22 @@ object Reducer{
         case Some(c) => reduce(c.expr, values)
         case None => error("non-exhaustive pattern")
       }
-//      case Application(Constructor(name), list) => cases.find((c) => c.constructor == name || c.isInstanceOf[DefaultCase]) match{
-//	      case Some(Case(constructor, arguments, expression)) =>
-//	      case x => error("non-exhaustive pattern")
-//      		}
+      case Application(Constructor(name), list) => cases.find((c) => c.constructor == name || c.isInstanceOf[DefaultCase]) match{
+	      case Some(Case(constructor, arguments, expression)) => reduce(arguments.zip(list).foldLeft(expression)((expr, bind) => bindArgs(expr, bind._1, bind._2)), values) 
+	      case x => error("non-exhaustive pattern")
+      		}
     }
     
     //Application of lambda function with too many arguments
     case Application(Lambda(List(), _), x::xs) => error("too many arguments")
     
-    case Application(Lambda(x::xs, _), List()) => error("too few arguments")
+    case Application(Lambda(x::xs, _), List()) => error("too few arguments: " + (x::xs))
     
     //Lambda removal
-    case Application(Lambda(List(), expr), args) => reduce(Debug.traceFormatted("expr:%s"){expr}((e) => List(e)), values)
+    case Application(Lambda(List(), expr), args) => {/*println(expr)*/; reduce(expr, values)}
     
     //Beta reduction
-    case a @ Application(Lambda(binding::bindings, expr), expression::expressions) => {println("beta: " + a); (reduce(Application(Lambda(bindings, bindArgs(expr, binding, expression)), expressions), values))} 
-    
-    
+    case a @ Application(Lambda(binding::bindings, expr), expression::expressions) => {/*println("beta: " + a);*/ (reduce(Application(Lambda(bindings, bindArgs(expr, binding, expression)), expressions), values))} 
     
     //Reduce applications
     case Application(f, list) => f match{
@@ -67,13 +65,15 @@ object Reducer{
         	case None => error("unknown value: " + name)
         }
       }
-      case x => error(format("cannot apply %s to %s", x, list.mkString(",")))
+      case Constructor(name) => Application(f, list.map((x) => reduce(x, values)))
+      case x => error(format("cannot apply %s to %s", x, list.mkString(", ")))
     }
   }
   
   def bindArgs(expr:Expression, name:String, binding:Expression):Expression = expr match{
     case Variable(x) if x == name => binding
   	case Application(f, args) => Application(bindArgs(f, name, binding), args.map((x) => bindArgs(x, name, binding)))
+  	case Lambda(bindings, body) => Lambda(bindings, if(bindings.contains(name)) body else bindArgs(body, name, binding))
     case Match(matchExpr, cases) => Match(bindArgs(matchExpr, name, binding), cases.map((c) => c match{
         case Case(cons, consArgs, expr) => Case(cons,  consArgs, bindArgs(expr, name, binding))
         case DefaultCase(defaultExpr) => DefaultCase(bindArgs(defaultExpr, name, binding))

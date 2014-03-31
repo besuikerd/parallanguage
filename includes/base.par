@@ -1,12 +1,31 @@
 map f list = match list{
-	Cons x xs -> (Cons (function x) (map function xs))
+	Cons x xs -> (Cons (f x) (map f xs))
 	Empty -> Empty
 }
 
 foldl f a list = match list{
-	Cons x xs -> (foldl (f a x) list)
+	Cons x xs -> foldl(f, (f a x), xs)
 	Empty -> a 
 }
+
+length list = foldl(\x y -> plus(x, 1), 0, list)
+
+
+intmin = -2147483648
+intmax = 2147483647
+
+sum list = foldl(\x y -> plus(x, y), 0, list)
+avg list = div(sum(list), length(list))
+
+min list = foldl(\x y -> match compare(x, y){
+	GT -> y
+	_ -> x
+}, intmax, list)
+
+max list = foldl(\x y -> match compare(x, y){
+	GT -> x
+	_ -> y
+}, intmin, list)
 
 if = \x true false -> match x{
 	True -> true
@@ -49,6 +68,6 @@ filter pred l = match l {
 }
 
 qsort l = match l {
-	Cons x xs -> concat(concat(qsort(filter(lte(x), xs)), [x]), qsort(filter(gt(x), xs)))
+	Cons x xs -> concat(concat(qsort(filter(\y -> lte(y, x), xs)), (Cons x Empty)), qsort(filter(\y -> gt(y, x), xs)))
 	Empty -> Empty
 }
