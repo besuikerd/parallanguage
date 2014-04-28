@@ -1,3 +1,5 @@
+id x = x
+
 map f list = match list{
 	Cons x xs -> (Cons (f x) (map f xs))
 	Empty -> Empty
@@ -8,11 +10,19 @@ foldl f a list = match list{
 	Empty -> a 
 }
 
+foldl' f a list = let tuple = match list {
+	Cons x xs -> (Tuple f(a, x) xs)
+	Empty -> (Id a)
+} in match tuple {
+	Tuple acc xs -> foldl'(f, acc, xs)
+	Id a -> a
+}
+
 length list = foldl(\x y -> plus(x, 1), 0, list)
 
 
-intmin = -2147483648
-intmax = 2147483647
+integer_min = -2147483648
+integer_max = 2147483647
 
 sum list = foldl(\x y -> plus(x, y), 0, list)
 avg list = div(sum(list), length(list))
@@ -20,14 +30,15 @@ avg list = div(sum(list), length(list))
 min list = foldl(\x y -> match compare(x, y){
 	GT -> y
 	_ -> x
-}, intmax, list)
+}, integer_max, list)
 
 max list = foldl(\x y -> match compare(x, y){
 	GT -> x
 	_ -> y
-}, intmin, list)
+}, integer_min, list)
 
-if = \x true false -> match x{
+// DANGEROUS! because of strictness, true and false are both evaluated
+if bool true false = match bool{
 	True -> true
 	False -> false
 }
@@ -62,12 +73,17 @@ concat a b = match a{
 	Empty -> b
 }
 
+//TODO fix name duplication issues
 filter pred l = match l {
-	Cons x xs -> if( pred(x), (Cons x filter(pred, xs)), filter(pred, xs))
+	Cons z xs -> match pred(z) {
+		True -> (Cons z filter(pred, xs)) 
+		False -> filter(pred, xs)
+	}
 	Empty -> Empty
 }
 
+
 qsort l = match l {
-	Cons x xs -> concat(concat(qsort(filter(\y -> lte(y, x), xs)), (Cons x Empty)), qsort(filter(\y -> gt(y, x), xs)))
+	Cons x xs -> concat(qsort(filter(\y -> lte(y, x), xs)), (Cons x qsort(filter(\y -> gt(y, x), xs))))
 	Empty -> Empty
 }

@@ -9,4 +9,13 @@ fib n = match (compare n 2) {
 	GT -> ((fib (n `minus` 1)) `plus` (fib (n `minus` 2)))
 }
 
-add = \x y -> (x `plus` y)
+/* possible metric realizations
+length = ...
+
+metric List length = \list -> match list{
+	Cons x xs -> metric(x) + metric(xs)
+}
+
+metric Int id
+metric Int sqrt
+*/

@@ -7,11 +7,17 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
   
   protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r //enable java-style comments
   
-  lazy val identLower : Parser[String] = """[a-z_]\w*""".r
+  lazy val identLower : Parser[String] = """[a-z_][\w']*""".r
   lazy val identUpper : Parser[String] = """[A-Z_]\w*""".r
   
   val string : Parser[String] = ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r
   val int : Parser[Int] = wholeNumber ^^ (_.toInt)  
+  val hex : Parser[Int] = "0x" ~> """[0-f]*""".r ^?({
+    case s => try {java.lang.Integer.parseInt(s, 16)} catch{case e:NumberFormatException => throw new MatchError}  
+  }, {
+    case s => format("unable to convert %s to integer", s)
+    
+  })
   lazy val program:Parser[Program] = statement.* ^^ Program
   
   lazy val statement:Parser[Statement] = 
@@ -24,14 +30,16 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
     "(" ~> expression ~ ("`" ~> identLower)  ~ ('`' ~> expression) <~ ")" ^^ (x => x match{case left ~ op ~ right => Application(Variable(op), List(left, right))}) |
     //SUGAR application
     ((identLower <~ "(") ~ repsep(expression, ",") <~ ")") ^^ (x => x match{case name ~ args => Application(Variable(name), args)}) |
+    //SUGAR let binding
+    "let" ~> identLower ~ ("=" ~> expression) ~ ("in" ~> expression) ^^ (x => x match{case name ~ binding ~ expr => Application(Lambda(List(name), expr), List(binding))}) |
     //variable
     identLower ^^ Variable |
     //constructor
     identUpper ^^ Constructor |
     //SUGAR List constructor
     "[" ~> repsep(expression, ",") <~ "]" ^^ (_.foldRight[Expression](Constructor("Empty"))((x, xs) => Application(Constructor("Cons"), List(x, xs)))) | 
-    //constant
-    int ^^ Constant |
+    //integer
+    (hex | int) ^^ Integer |
     //lambda
     ("\\" ~> identLower.*) ~ ("->" ~> expression) ^^ Lambda |
     //application
