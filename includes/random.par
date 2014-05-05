@@ -1,11 +1,11 @@
 randlist size min max = match compare(size, 0) {
 	GT -> (Cons random(min, max) randlist(minus(size, 1), min, max))
-	_ -> Empty
+	_ -> Nil
 }
 
 mklist n = randlist(n, 0, 100000)
 
 repeat x n = match compare(n, 0) {
 	GT -> (Cons x repeat(x, minus(n, 1)))
-	_ -> Empty
+	_ -> Nil
 }

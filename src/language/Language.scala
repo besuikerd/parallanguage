@@ -1,6 +1,5 @@
 package language
 
-import java.util.concurrent.ForkJoinWorkerThread
 import java.util.concurrent.RecursiveTask
 
 import scala.collection.immutable.Map
@@ -8,12 +7,16 @@ import scala.collection.immutable.Map
 case class Program(statements: List[Statement])
 
 sealed abstract class Statement
-case class Assignment(name: String, variables: List[String], body: Expression) extends Statement
+case class ValueBinding(name: String, variables: List[String], body: Expression) extends Statement
+case class TypeBinding(name:String, instances:List[String]) extends Statement
+case class Import(name:String) extends Statement
+//case class Type()
 
 sealed abstract class Expression
 case class Variable(name: String) extends Expression
 case class Constructor(name: String) extends Expression
 case class Integer(value: Int) extends Expression
+case class StringValue(value:String) extends Expression
 case class Lambda(bindings: List[String], body: Expression) extends Expression
 case class Application(function: Expression, arguments: List[Expression]) extends Expression
 case class Match(scrutenize: Expression, cases: List[AbstractCase]) extends Expression
@@ -23,30 +26,21 @@ abstract class AbstractCase(val constructor: String, val arguments: List[String]
 case class Case(override val constructor: String, override val arguments: List[String], override val expr: Expression) extends AbstractCase(constructor, arguments, expr)
 case class DefaultCase(override val expr: Expression) extends AbstractCase("_", List(), expr)
 
-case class Environment(val values:Map[String, Expression]) {
-  val isParallel = Thread.currentThread().isInstanceOf[ForkJoinWorkerThread]
-  def shouldFork(expr: Expression): Boolean = isParallel
-  def forkjoin(expressions: List[Expression]): List[Expression] = expressions.map((expression) => if (shouldFork(expression)) Left(new ExpressionTask(expression, this).fork()) else Right(Reducer.reduce(expression, this))).map((either) => either match {
-    case Left(x) => x.join()
-    case Right(x) => x
-  })
-}
 class ExpressionTask(val expression: Expression, val environment: Environment) extends RecursiveTask[Expression] {
   def compute() = Reducer.reduce(expression, environment)
 }
 
-//TODO environment vs binding
-//TODO objects are not dereferenced, memory heap grows enormously
 object Reducer {
   var cnt = 0;
   def reduce(expression: Expression, environment: Environment): Expression = {
-//        println("reducing: " + Interpreter.prettify(expression));
+//    println("reducing: " + Interpreter.prettify(expression));
     cnt = cnt + 1;
-    implicit def Map2Environment(values:Map[String, Expression]) = Environment(values)
-    implicit def Environment2Map(environment:Environment) = environment.values
-    
+    implicit def map2Environment(values: Map[String, Expression]) = Environment(values, environment.types, EnvConfig())
+    implicit def environment2Map(environment: Environment) = environment.values
+
     expression match {
       case integer: Integer => integer
+      case string:StringValue => string
       case constructor: Constructor => constructor
       case lambda: Lambda => lambda
       case Variable(x) => environment.get(x) match {
@@ -71,15 +65,20 @@ object Reducer {
 
       //Beta reduction
       case Application(Lambda(bindings, expr), args) if (bindings.length == args.length) => reduce(expr,
-          bindings.zip(environment.forkjoin(args)).foldLeft(environment)((acc, cur) => acc + (cur._1 -> cur._2))
-          
-          )
-//    		  args.map((x) => reduce(x, environment)
+        //zip bindings with applied arguments
+        bindings.zip(environment.
+          //fork subexpressions
+          forkjoin(
+            //apply capture avoiding substitution on lambdas
+            args.map((x) => if (x.isInstanceOf[Lambda]) resolveVariables(x, environment) else x)))
+          //add reduced lambda arguments to the environment of the application
+          .foldLeft(environment)((acc, cur) => acc + (cur._1 -> cur._2)))
+
       //Reduce applications
       case Application(app, args) => app match {
         case Variable(name) => binaryOps.get(name) match {
           case Some(binaryOp) => args match {
-            case List(e1, e2) => List(reduce(e1, environment), reduce(e2, environment)) match {
+            case List(e1, e2) => environment.forkjoin(List(e1, e2)) match {
               case List(Integer(x), Integer(y)) => binaryOp(x, y)
               case nonIntList => error(format("cannot apply primitive function %s with [%s]", name, nonIntList.mkString(",")))
             }
@@ -103,24 +102,24 @@ object Reducer {
       };
 
     }
-
   }
 
+  //  def substitute(lambda:Lambda, environment:Environment):Lambda = Lambda(lambda.bindings, resolveVariables(lambda.body, environment.values))
+
   def resolveVariables(expr: Expression, values: Map[String, Expression]): Expression = {
-    println("resolving: " + expr); val result = expr match {
+    val result = expr match {
       case variable @ Variable(x) => values.get(x) match {
-        case Some(expr) => { println("found: " + x + ": " + Interpreter.prettify(expr)); expr }
+        case Some(expr) => expr
         case None => variable
       }
       case Application(f, args) => Application(f, args.map((x) => resolveVariables(x, values)))
-      case Lambda(bindings, body) => { println(format("%s: %s", expr, (values).contains("x"))); Lambda(bindings, resolveVariables(body, values -- bindings)) }
+      case Lambda(bindings, body) => Lambda(bindings, resolveVariables(body, values -- bindings))
       case Match(matchExpr, cases) => Match(resolveVariables(matchExpr, values), cases.map((c) => c match {
         case Case(cons, consArgs, caseExpr) => Case(cons, consArgs, resolveVariables(caseExpr, values))
         case DefaultCase(defaultExpr) => DefaultCase(resolveVariables(defaultExpr, values))
       }))
       case otherwise => otherwise
     }
-    println("resolved: " + expr + " to: " + result)
     result
   }
 

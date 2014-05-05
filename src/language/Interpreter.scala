@@ -15,16 +15,17 @@ import java.util.concurrent.ForkJoinPool
 
 object Interpreter {
   def main(args: Array[String]) {
-    val environment = Environment(args.foldLeft(Map[String, Expression]())((map, arg) => map ++ loadFile(arg)) ++ Map(
-      "random" -> Lambda(List("x", "y"), Application(Random(Variable("x"), Variable("y")), List()))))
+    val tempBaseDir = """C:\Users\Nicker\projects\scala\parallanguage\includes"""
+    val environment = args.foldLeft(Environment(config = EnvConfig(tempBaseDir)) ++ Environment.predef)((env, arg) => env ++ arg)
+    
     val pool = new ForkJoinPool(8)
     Stream.continually(readLine).foreach(s => Parser.parseAll(Parser.expression, s) match {
       case Parser.Success(result, n) => try {
-        println(prettify(result));
+        
+        println(result);
         val toReduce = new ExpressionTask(result, environment)
         val parallel = true
         val reduced = time(() => if (parallel) pool.invoke(toReduce) else toReduce.compute)
-        
         
         println(format("[%s][%d][%dms] result: %s", if(parallel) "p" else "s", Reducer.cnt, reduced._2, prettify(reduced._1)));
         Reducer.cnt = 0;
@@ -67,27 +68,11 @@ object Interpreter {
   }
   
   def time[R](block: () => R): Tuple2[R, Long] = {
-	    val t = System.currentTimeMillis
-	    return Tuple2(block(), System.currentTimeMillis - t)
+    val t = System.currentTimeMillis
+    return Tuple2(block(), System.currentTimeMillis - t)
   }
 
-  def loadFile(path: Path): Map[String, Expression] = {
-    path.ifDirectory((d) => d.files.filter((f) => f.toString.endsWith(".par")).foldLeft(Map[String, Expression]())((map, file) => map ++ loadFile(file.path))) match {
-      case Some(map) => map
-      case None => path.ifFile((f) => Parser.parseAll(Parser.program, f.bufferedReader) match {
-        case Parser.Success(result, n) => result.statements.foldLeft(Map[String, Expression]())((map, statement) => statement match {
-          case Assignment(name, List(), body) => map + (name -> body)
-          case Assignment(name, args, body) => map + (name -> Lambda(args, body))
-        })
-        case Parser.Failure(msg, n) => { println(format("parse error in %s: %s", f.toString, msg)); Map[String, Expression]() }
-        case Parser.Error(msg, n) => { println(msg); Map[String, Expression]() }
-      }) match {
-        case Some(map) => map
-        case None => { println("invalid path: " + path); Map() }
-      }
-
-    }
-  }
+  
 }
 
 

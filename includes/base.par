@@ -2,17 +2,17 @@ id x = x
 
 map f list = match list{
 	Cons x xs -> (Cons (f x) (map f xs))
-	Empty -> Empty
+	Nil -> Nil
 }
 
 foldl f a list = match list{
 	Cons x xs -> foldl(f, (f a x), xs)
-	Empty -> a 
+	Nil -> a 
 }
 
 foldl' f a list = let tuple = match list {
 	Cons x xs -> (Tuple f(a, x) xs)
-	Empty -> (Id a)
+	Nil -> (Id a)
 } in match tuple {
 	Tuple acc xs -> foldl'(f, acc, xs)
 	Id a -> a
@@ -70,20 +70,19 @@ eq x y = match compare(x, y) {
 
 concat a b = match a{
 	Cons x xs -> (Cons x (concat xs b))
-	Empty -> b
+	Nil -> b
 }
 
-//TODO fix name duplication issues
 filter pred l = match l {
-	Cons z xs -> match pred(z) {
-		True -> (Cons z filter(pred, xs)) 
+	Cons x xs -> match pred(x) {
+		True -> (Cons x filter(pred, xs)) 
 		False -> filter(pred, xs)
 	}
-	Empty -> Empty
+	Nil -> Nil
 }
 
 
 qsort l = match l {
 	Cons x xs -> concat(qsort(filter(\y -> lte(y, x), xs)), (Cons x qsort(filter(\y -> gt(y, x), xs))))
-	Empty -> Empty
+	Nil -> Nil
 }
