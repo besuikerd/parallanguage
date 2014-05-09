@@ -4,7 +4,7 @@ import scala.util.parsing.combinator.JavaTokenParsers
 import scala.util.parsing.combinator.ImplicitConversions
 
 object Parser extends JavaTokenParsers with ImplicitConversions{
-  
+  import Language._
   protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r //enable java-style comments
   
   lazy val identLower : Parser[String] = """[a-z][\w'\.]*""".r
@@ -22,9 +22,14 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
   
   lazy val statement:Parser[Statement] = 
     "type" ~> (identUpper <~ "=") ~ repsep(identUpper, "|") ^^ TypeBinding |
-    identLower ~ identLower.* ~ ("=" ~> expression) ^^ ValueBinding |
-    "import" ~> string ^^ Import
+    "metric" ~> identUpper ~ identLower ~ repsep(identLower, " ") ~ ("=" ~> expression) ^^ (_ match{
+    	case metricType ~ name ~ bindings ~ expr => MetricDefinition(metricType, name, Lambda(bindings, expr))
+    }) |
+    "import" ~> string ^^ Import |
+    identLower ~ identLower.* ~ ("=" ~> expression) ^^ ValueBinding
     
+    
+  lazy val lambda:Parser[Lambda] =  ("\\" ~> identLower.*) ~ ("->" ~> expression) ^^ Lambda
     
   lazy val expression:Parser[Expression] = 
     //pattern matching
@@ -38,7 +43,7 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
     //variable
     identLower ^^ Variable |
     //constructor
-    identUpper ^^ Constructor |
+    identUpper ^^ ((x) => Constructor(x)) |
     //SUGAR List constructor
     "[" ~> repsep(expression, ",") <~ "]" ^^ (_.foldRight[Expression](Constructor("Nil"))((x, xs) => Application(Constructor("Cons"), List(x, xs)))) | 
     //integer
@@ -46,8 +51,8 @@ object Parser extends JavaTokenParsers with ImplicitConversions{
     //string
     string ^^ StringValue | 
     //lambda
-    ("\\" ~> identLower.*) ~ ("->" ~> expression) ^^ Lambda |
+    lambda |
     //application
-    "(" ~> expression ~ expression.+ <~ ")" ^^ Application
+    "(" ~> expression ~ expression.* <~ ")" ^^ Application
     
 }

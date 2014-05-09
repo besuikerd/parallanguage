@@ -1,1 +1,24 @@
 type List = Cons | Nil
+type Tree = Node | Leaf
+
+
+metric List length list = match list{
+	Cons x xs -> plus(1, metric("length", xs))
+	Nil -> 0
+}
+
+
+
+metric List max list = match list{
+	Cons x xs -> math.max(x, metric("max", xs))
+	Nil -> integer_min
+}
+
+
+metric Tree depth tree = match tree {
+	Node x left right -> plus(1, math.max(metric("depth", left), metric("depth", right)))
+	Leaf -> 0
+}
+
+
+metric Integer value int = int

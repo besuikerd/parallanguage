@@ -30,4 +30,4 @@ find x tree = match tree {
 	Leaf -> Leaf
 }
 
-sortedblist = qsort(blist)
+//sortedblist = qsort(blist)

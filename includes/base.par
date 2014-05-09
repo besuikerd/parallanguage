@@ -10,14 +10,6 @@ foldl f a list = match list{
 	Nil -> a 
 }
 
-foldl' f a list = let tuple = match list {
-	Cons x xs -> (Tuple f(a, x) xs)
-	Nil -> (Id a)
-} in match tuple {
-	Tuple acc xs -> foldl'(f, acc, xs)
-	Id a -> a
-}
-
 length list = foldl(\x y -> plus(x, 1), 0, list)
 
 
@@ -80,6 +72,8 @@ filter pred l = match l {
 	}
 	Nil -> Nil
 }
+
+math.max a b = if(gt(a,b), a, b)
 
 
 qsort l = match l {
