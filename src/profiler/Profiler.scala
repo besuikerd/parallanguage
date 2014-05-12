@@ -10,12 +10,5 @@ case class Expr
 case class Type
 
 object Profiler {
-	Profile(Map(
-		    "name" -> FunctionProfile(List(
-						Argument(Type(), Expr()),
-						Argument(Type(), Expr())
-		    		))
-			
-	))
 	
 }

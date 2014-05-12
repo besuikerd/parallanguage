@@ -76,6 +76,7 @@ object Environment {
     ,ValueBinding("metric", List(), Lambda(List("name", "x"), Application(GetMetric(Variable("name"), Variable("x")))))
 
     ,TypeBinding("Integer", List("Integer"))
+    ,TypeBinding("String", List("String"))
 
   )
 }

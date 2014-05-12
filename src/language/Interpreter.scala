@@ -25,7 +25,7 @@ object Interpreter {
         val parallel = true
         val reduced = time(() => if (parallel) pool.invoke(toReduce) else toReduce.compute)
         
-        println(format("[%s][%d][%dms] result: %s", if(parallel) "p" else "s", Reducer.cnt, reduced._2, prettify(reduced._1)));
+        println(format("[%s][%d][%dms] result: %.200s", if(parallel) "p" else "s", Reducer.cnt, reduced._2, prettify(reduced._1)));
         Reducer.cnt = 0;
       } catch { case e: Throwable => {e.printStackTrace(); println(e); } }
       case p:Parser.Failure => println(p)
@@ -37,10 +37,10 @@ object Interpreter {
     def prettify(expr:Expression, level:Int):String =
     expr match {
       case Application(expr, args) => expr match {
-        case Constructor("Conss", header) => {
+        case Constructor("Cons", header) => {
           def mklist(expr: Expression): String = expr match {
             case Application(Constructor("Cons", header), x :: xs :: list) => ", " + prettify(x, level) + mklist(xs)
-            case Constructor("Nils", header) => ""
+            case Constructor("Nil", header) => ""
             case otherwise => ", " + prettify(otherwise, level)
           }
           "[" + prettify(args.head, level) + mklist(args.last) + "]"

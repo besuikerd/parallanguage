@@ -89,8 +89,9 @@ object Reducer {
             case StringValue(name) => (reduce(app, environment).tap((app) => (app match {
               case c: Constructor => c.name
               case Application(c: Constructor, _) => c.name
-              case _: Integer => "Integer"
-              case unknownInstance => error("could not resolve instance type for " + unknownInstance)
+              case _: Integer => environment.types.getOrElse("Integer", "Integer")
+              case _: StringValue => environment.types.getOrElse("String", "String")
+              case unknownInstance => unknownInstance.getClass.getSimpleName
             }).tap((instanceName) => {
               
               app match {
@@ -104,9 +105,15 @@ object Reducer {
 
                         x
                       }
-                      case None => error(format("metric %s not found for %s", name, metricType))
+                      case None => name match{
+                        case "value" => Integer(1)
+                        case otherwise => error(format("metric %s not found for %s", name, metricType))
+                      }
                     }
-                    case None => { println(environment.metrics); error(format("no metrics found for type %s", metricType)) }
+                    case None => name match{
+                      case "value" => Integer(1)
+                      case otherwise => error(format("no metrics found for type %s", metricType))
+                    }
                   }
                   case None => error("cannot get type from " + instanceName)
                 }

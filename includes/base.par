@@ -74,9 +74,3 @@ filter pred l = match l {
 }
 
 math.max a b = if(gt(a,b), a, b)
-
-
-qsort l = match l {
-	Cons x xs -> concat(qsort(filter(\y -> lte(y, x), xs)), (Cons x qsort(filter(\y -> gt(y, x), xs))))
-	Nil -> Nil
-}

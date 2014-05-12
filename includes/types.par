@@ -1,18 +1,22 @@
 type List = Cons | Nil
 type Tree = Node | Leaf
 
-
 metric List length list = match list{
 	Cons x xs -> plus(1, metric("length", xs))
 	Nil -> 0
 }
 
-
+metric List value list = match list {
+	Cons x xs -> plus(metric("value", x), metric("value", xs))
+	Nil -> 0
+}
 
 metric List max list = match list{
-	Cons x xs -> math.max(x, metric("max", xs))
+	Cons x xs -> math.max(metric("value", x), metric("max", xs))
 	Nil -> integer_min
 }
+
+metric List avg list = div(metric("value", list), metric("length", list))
 
 
 metric Tree depth tree = match tree {
@@ -20,5 +24,9 @@ metric Tree depth tree = match tree {
 	Leaf -> 0
 }
 
+metric Tree value tree = match tree {
+	Node x left right -> plus(x, plus(metric("value", left), metric("value", right)))
+	Leaf -> 0
+}
 
 metric Integer value int = int
